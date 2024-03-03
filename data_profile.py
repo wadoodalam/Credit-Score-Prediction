@@ -3,9 +3,9 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-import re
+import re,warnings
 
-# TODO: Need to handle outliers(and then missing values)
+warnings.filterwarnings("ignore")
 
 def HistForNumData(data):
     # Create histogram
@@ -29,9 +29,21 @@ def DescribeCatData(data):
     data_info = data[['Credit_Score', 'Credit_Mix', 'Type_of_Loan', 'Payment_Behaviour', 'Payment_of_Min_Amount']].astype('object').describe()
     data_info.to_csv('Cat_Profile.csv')
 
-def ConvertCreditHistoryAge(data):
-    # Convert the age to decimal values
-    return data
+def ConvertCreditHistoryAge(age_str):
+    # Check if string type(as per dataset convention), if not then return as is
+    if isinstance(age_str, str):
+        # Check if '_' after stripping the value(which is null)
+        if age_str.strip('_') == '':
+            # return NA for missing values
+            return pd.NA  
+        # Split value by whitespace/empty space
+        age_split = age_str.split()
+        # Extract years and months from the splitted value
+        years = int(age_split[0])
+        months = int(age_split[3])
+        return years + months / 12
+    else:
+        return age_str
 
 
     
@@ -62,18 +74,19 @@ if __name__ == "__main__":
 
     
     data = pd.read_csv('train.csv')
+    data = data.drop(columns=['ID','Name','SSN'])
     dataset = PartitionDataset(data)
   
     # underscores are cleaned
     dataset = RemoveUnderscore(dataset,['Age','Num_of_Loan','Num_of_Delayed_Payment','Annual_Income','Changed_Credit_Limit','Outstanding_Debt','Amount_invested_monthly'])
     dataset = RemoveUnderscore(dataset,['Occupation','Credit_Mix'],Sting=True)
-    #dataset = ConvertCreditHistoryAge(dataset)
+    dataset['Credit_History_Age'] = dataset['Credit_History_Age'].apply(ConvertCreditHistoryAge)
     #dataset.loc[(dataset['Age'] < 18) | (dataset['Age'] > 100), 'Age'] = np.nan
 
     
     
     dataset.to_csv('10kData.csv')
-    PlotForCatData(dataset) # mean, median, max, min, num_of_missing values
+    #PlotForCatData(dataset) # mean, median, max, min, num_of_missing values
     
     #Graph(data) # Create Histogram
     
