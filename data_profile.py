@@ -75,13 +75,39 @@ def IdentifyNull(data):
     data['Payment_Behaviour'] = data['Payment_Behaviour'].replace('!@9#%8',pd.NA)
     return data
     
+def LoanFeatureSplitting(data):
+    # set for unqiue loan type
+    loans = set()
+    # Split by ',' if not null and add to the set
+    for loan in data['Type_of_Loan']:
+        if isinstance(loan, str):
+            split = loan.split(', ')
+            loans.update(split)
+    # set for unique clean loan values
+    clean_loans = set()
+    # Remove 'and' from the above derived loan set
+    for loan in loans:
+        if 'and ' in loan:
+            clean_loans.add(loan.replace('and ','')) 
+        else: 
+            # if 'and' not present then just add to the cleaned set as values are already cleaned
+            clean_loans.add(loan)
     
+    # Create new feature for each loan with binary representation 
+    for loan_type in clean_loans:
+        # If the extracted loan(s) are present in the value, create and update the loan(s) col with 0 or 1
+        data[loan_type] = data['Type_of_Loan'].apply(lambda x: 1 if isinstance(x, str) and loan_type in x else 0)
+    # Drop the original feature
+    data.drop(columns=['Type_of_Loan'], inplace=True)
+    return data
+
 if __name__ == "__main__":
 
     
     data = pd.read_csv('train.csv')
+    # Drop unneeded columns
     data = data.drop(columns=['ID','Name','SSN'])
-    # Partation dataset to 10000 rows
+    # Partition dataset to 10000 rows
     dataset = PartitionDataset(data)
   
     # underscores are cleaned
@@ -91,6 +117,8 @@ if __name__ == "__main__":
     dataset['Credit_History_Age'] = dataset['Credit_History_Age'].apply(ConvertCreditHistoryAge)
     # Identify and replace null values
     dataset = IdentifyNull(dataset)
+    
+    dataset = LoanFeatureSplitting(dataset)
     
     
     dataset.to_csv('10kData.csv')
