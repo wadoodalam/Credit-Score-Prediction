@@ -24,7 +24,6 @@ def PlotForCatData(data):
         plt.tight_layout()
         plt.savefig(f'{feature_name}.png')
 
-
 def DescribeCatData(data):
     data_info = data[['Credit_Score', 'Credit_Mix', 'Type_of_Loan', 'Payment_Behaviour', 'Payment_of_Min_Amount']].astype('object').describe()
     data_info.to_csv('Cat_Profile.csv')
@@ -45,8 +44,6 @@ def ConvertCreditHistoryAge(age_str):
     else:
         return age_str
 
-
-    
 def Describe(data):
     description = data.describe()
     # Separate the desired columns
@@ -69,20 +66,31 @@ def RemoveUnderscore(data, feature_names,Sting=False):
     
     return data
 
-
+def IdentifyNull(data):
+    #-100 for Num_of_Loan
+    data['Num_of_Loan'] = data['Num_of_Loan'].replace(-100,pd.NA)
+    # NM for Payment_of_Min_Amount
+    data['Payment_of_Min_Amount'] = data['Payment_of_Min_Amount'].replace('NM',pd.NA)
+    # !@9#%8 for Payment_Behaviour
+    data['Payment_Behaviour'] = data['Payment_Behaviour'].replace('!@9#%8',pd.NA)
+    return data
+    
+    
 if __name__ == "__main__":
 
     
     data = pd.read_csv('train.csv')
     data = data.drop(columns=['ID','Name','SSN'])
+    # Partation dataset to 10000 rows
     dataset = PartitionDataset(data)
   
     # underscores are cleaned
     dataset = RemoveUnderscore(dataset,['Age','Num_of_Loan','Num_of_Delayed_Payment','Annual_Income','Changed_Credit_Limit','Outstanding_Debt','Amount_invested_monthly'])
     dataset = RemoveUnderscore(dataset,['Occupation','Credit_Mix'],Sting=True)
+    # Age is converted to decimal for Credit History Age
     dataset['Credit_History_Age'] = dataset['Credit_History_Age'].apply(ConvertCreditHistoryAge)
-    #dataset.loc[(dataset['Age'] < 18) | (dataset['Age'] > 100), 'Age'] = np.nan
-
+    # Identify and replace null values
+    dataset = IdentifyNull(dataset)
     
     
     dataset.to_csv('10kData.csv')
