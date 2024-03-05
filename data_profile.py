@@ -101,6 +101,35 @@ def LoanFeatureSplitting(data):
     data.drop(columns=['Type_of_Loan'], inplace=True)
     return data
 
+def ConvertCreditScoreClass(data):
+    credit_score = data['Credit_Score']
+    classes_map = {'Good': 1, 'Standard': 2, 'Poor': 3}
+    
+    num_classes = []
+    for classes in credit_score:
+        num_val = classes_map[classes]
+        num_classes.append(num_val)
+    
+    data = data.drop(columns=['Credit_Score'])
+    data['Credit_Score'] = num_classes
+    return data
+
+def ConvertPaymentMinAmountClass(data):
+    amount = data['Payment_of_Min_Amount']
+    class_map = {'No':0, 'Yes':1}
+    
+    num_classes = []
+    for classes in amount:
+        if isinstance(classes, str):
+            num_val = class_map[classes]
+        else:
+            num_val = pd.NA
+        num_classes.append(num_val)
+    data = data.drop(columns=['Payment_of_Min_Amount'])
+    data['Payment_of_Min_Amount'] = num_classes
+    return data
+
+
 if __name__ == "__main__":
 
     
@@ -117,10 +146,11 @@ if __name__ == "__main__":
     dataset['Credit_History_Age'] = dataset['Credit_History_Age'].apply(ConvertCreditHistoryAge)
     # Identify and replace null values
     dataset = IdentifyNull(dataset)
-    
+    # Split the Type_of_Loan feature in binary features for all types of loans
     dataset = LoanFeatureSplitting(dataset)
     
-    
+    dataset = ConvertCreditScoreClass(dataset)
+    dataset = ConvertPaymentMinAmountClass(dataset)
     dataset.to_csv('10kData.csv')
     #PlotForCatData(dataset) # mean, median, max, min, num_of_missing values
     
