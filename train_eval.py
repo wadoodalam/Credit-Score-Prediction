@@ -6,6 +6,7 @@ from sklearn.model_selection import train_test_split,StratifiedGroupKFold
 from sklearn.dummy import DummyClassifier
 from sklearn.ensemble import HistGradientBoostingClassifier
 from scipy.stats.mstats import winsorize
+import time
 
 def LoadData(path, Winsorize=False):
     # read from csv
@@ -190,8 +191,12 @@ def RemoveByThreshold():
 def OutlierStrategy(solutions,dummy):
     accuracies = {'Do Nothing':[],'Winsorize':[],'Remove By Threshold':[]}
     conf_matricies = {'Do Nothing':[],'Winsorize':[],'Remove By Threshold':[]}
+    runtime = {'Do Nothing':[],'Winsorize':[],'Remove By Threshold':[]}
     for sol in solutions:
+        start_time = 0
+        end_time = 0
         if sol == 'Do Nothing':
+            start_time = time.time()
             X,Y,group = LoadData('10kData.csv',False)
             
             accuracy_TTS, conf_matrix_TTS = TrainTestSplit(X,Y,dummy)
@@ -202,6 +207,10 @@ def OutlierStrategy(solutions,dummy):
             
             conf_matricies['Do Nothing'].append(conf_matrix_TTS)
             conf_matricies['Do Nothing'].append(conf_matrix_SGK)
+            
+            end_time = time.time()
+            time_taken = (end_time-start_time) / 60
+            runtime['Do Nothing'].append(time_taken)
             
         elif sol == 'Winsorize':
             X,Y,group = LoadData('10kData.csv',True)
@@ -214,6 +223,10 @@ def OutlierStrategy(solutions,dummy):
 
             conf_matricies['Winsorize'].append(conf_matrix_TTS)
             conf_matricies['Winsorize'].append(conf_matrix_SGK)
+            
+            end_time = time.time()
+            time_taken = (end_time-start_time) / 60
+            runtime['Winsorize'].append(time_taken)
             
         elif sol == 'Remove By Threshold':
             # Save outliers to outliers.csv for visualization
@@ -229,21 +242,26 @@ def OutlierStrategy(solutions,dummy):
             conf_matricies['Remove By Threshold'].append(conf_matrix_TTS)
             conf_matricies['Remove By Threshold'].append(conf_matrix_SGK)
             
-                
+            end_time = time.time()
+            time_taken = (end_time-start_time) / 60
+            runtime['Remove By Threshold'].append(time_taken)
             
-    return accuracies,conf_matricies
+    return accuracies,conf_matricies,runtime
         
 
     
 if __name__ == "__main__":
 
     outlier_sol = ['Do Nothing','Winsorize','Remove By Threshold']
-    dummy = 1
+    dummy = 0
     if dummy == 1:
-        accuracies,conf_matricies = OutlierStrategy(outlier_sol,True)
+        accuracies,conf_matricies,runtime = OutlierStrategy(outlier_sol,True)
+        print(runtime)
         print(accuracies)
+        
     else:
-        accuracies,conf_matricies = OutlierStrategy(outlier_sol,False)
+        accuracies,conf_matricies,runtime = OutlierStrategy(outlier_sol,False)
+        print(runtime)
         print(accuracies)
         #print(conf_matricies)
     
