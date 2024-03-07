@@ -1,4 +1,9 @@
-
+'''
+Author: Wadood Alam
+Date: 6th March 2024
+Class: AI 539
+Final Project: Credit Score Evaluation
+'''
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt

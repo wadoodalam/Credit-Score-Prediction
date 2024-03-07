@@ -1,6 +1,12 @@
+'''
+Author: Wadood Alam
+Date: 6th March 2024
+Class: AI 539
+Final Project: Credit Score Evaluation
+'''
+
 import pandas as pd
 import numpy as np
-from sklearn.neural_network import MLPClassifier
 from sklearn.metrics import accuracy_score, confusion_matrix
 from sklearn.model_selection import train_test_split,StratifiedGroupKFold
 from sklearn.dummy import DummyClassifier
@@ -95,6 +101,7 @@ def GetClassifier(dummy=False):
         model = DummyClassifier(strategy='most_frequent',random_state=0)
     else:
         model = HistGradientBoostingClassifier(max_iter=100, random_state=0)
+        #print(model.get_params())
     return model
 
 def IdentifyOutliers():
@@ -209,10 +216,11 @@ def OutlierStrategy(solutions,dummy):
             conf_matricies['Do Nothing'].append(conf_matrix_SGK)
             
             end_time = time.time()
-            time_taken = (end_time-start_time) / 60
+            time_taken = (end_time-start_time) 
             runtime['Do Nothing'].append(time_taken)
             
         elif sol == 'Winsorize':
+            start_time = time.time()
             X,Y,group = LoadData('10kData.csv',True)
             
             accuracy_TTS, conf_matrix_TTS = TrainTestSplit(X,Y,dummy)
@@ -225,10 +233,11 @@ def OutlierStrategy(solutions,dummy):
             conf_matricies['Winsorize'].append(conf_matrix_SGK)
             
             end_time = time.time()
-            time_taken = (end_time-start_time) / 60
+            time_taken = (end_time-start_time) 
             runtime['Winsorize'].append(time_taken)
             
         elif sol == 'Remove By Threshold':
+            start_time = time.time()
             # Save outliers to outliers.csv for visualization
             IdentifyOutliers()
             X,Y,group = RemoveByThreshold()
@@ -243,7 +252,7 @@ def OutlierStrategy(solutions,dummy):
             conf_matricies['Remove By Threshold'].append(conf_matrix_SGK)
             
             end_time = time.time()
-            time_taken = (end_time-start_time) / 60
+            time_taken = (end_time-start_time) 
             runtime['Remove By Threshold'].append(time_taken)
             
     return accuracies,conf_matricies,runtime
@@ -253,17 +262,17 @@ def OutlierStrategy(solutions,dummy):
 if __name__ == "__main__":
 
     outlier_sol = ['Do Nothing','Winsorize','Remove By Threshold']
-    dummy = 0
-    if dummy == 1:
+    dummy = 1
+    if dummy == 0:
         accuracies,conf_matricies,runtime = OutlierStrategy(outlier_sol,True)
-        print(runtime)
-        print(accuracies)
+        print('Run Time:',runtime)
+        print('Accuracy:',accuracies)
         
     else:
         accuracies,conf_matricies,runtime = OutlierStrategy(outlier_sol,False)
-        print(runtime)
-        print(accuracies)
-        #print(conf_matricies)
+        #print('Run Time:',runtime)
+        #print('Accuracy:',accuracies)
+        print(conf_matricies)
     
   
     
