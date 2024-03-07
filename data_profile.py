@@ -25,7 +25,7 @@ def PlotForCatData(data):
         plt.savefig(f'{feature_name}.png')
 
 def DescribeCatData(data):
-    data_info = data[['Credit_Score', 'Credit_Mix', 'Type_of_Loan', 'Payment_Behaviour', 'Payment_of_Min_Amount']].astype('object').describe()
+    data_info = data[['Credit_Score', 'Credit_Mix', 'Payment_Behaviour']].astype('object').describe()
     data_info.to_csv('Cat_Profile.csv')
 
 def ConvertCreditHistoryAge(age_str):
@@ -151,6 +151,8 @@ if __name__ == "__main__":
     
     dataset = ConvertCreditScoreClass(dataset)
     dataset = ConvertPaymentMinAmountClass(dataset)
+    Describe(dataset)
+    DescribeCatData(dataset)
     dataset.to_csv('10kData.csv')
     #PlotForCatData(dataset) # mean, median, max, min, num_of_missing values
     
