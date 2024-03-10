@@ -12,6 +12,23 @@ import re,warnings
 
 warnings.filterwarnings("ignore")
 
+def GraphMissingValues(data):
+    missing_values = data.isnull().sum()
+    missing_values = missing_values[missing_values > 0]
+    total_missing_values = data.isnull().sum().sum()
+
+    print("Total number of missing values:", total_missing_values)
+    # Plotting
+    plt.figure(figsize=(10, 6))
+    missing_values.plot(kind='bar', color='skyblue')
+    plt.title('Number of Missing Values per Feature')
+    plt.xlabel('Features')
+    plt.ylabel('Number of Missing Values')
+    plt.xticks(rotation=45)
+    plt.grid(axis='y', linestyle='--', alpha=0.7)
+    plt.tight_layout()
+    plt.show()
+
 def HistForNumData(data):
     # Create histogram
     data.hist()
@@ -158,6 +175,7 @@ if __name__ == "__main__":
     dataset = ConvertPaymentMinAmountClass(dataset)
     Describe(dataset)
     DescribeCatData(dataset)
+    GraphMissingValues(dataset)
     dataset.to_csv('10kData.csv')
     #PlotForCatData(dataset) # mean, median, max, min, num_of_missing values
     
