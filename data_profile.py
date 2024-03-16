@@ -175,7 +175,7 @@ if __name__ == "__main__":
     dataset = ConvertPaymentMinAmountClass(dataset)
     Describe(dataset)
     DescribeCatData(dataset)
-    GraphMissingValues(dataset)
+    #GraphMissingValues(dataset)
     dataset.to_csv('10kData.csv')
     #PlotForCatData(dataset) # mean, median, max, min, num_of_missing values
     
