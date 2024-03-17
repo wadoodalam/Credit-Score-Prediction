@@ -12,7 +12,10 @@ from sklearn.model_selection import train_test_split,StratifiedGroupKFold
 from sklearn.dummy import DummyClassifier
 from sklearn.ensemble import HistGradientBoostingClassifier
 from scipy.stats.mstats import winsorize
+from sklearn.impute import SimpleImputer
 import time
+import warnings
+warnings.filterwarnings('ignore')
 
 def LoadData(path, Winsorize=False):
     # read from csv
@@ -301,16 +304,134 @@ def C1Results(dummy):
         print('Accuracy:',accuracies)
         print(conf_matricies)
     
+    
+    
 
+
+
+def ImputeByGroup(numeric_features,categorical_features,group):
+    # Define and init imputation strategies and feature type
+    mean_impute_features =  ['Changed_Credit_Limit', 'Credit_History_Age', 'Amount_invested_monthly', 'Monthly_Balance','Num_of_Delayed_Payment']
+    mode_impute_num_features = ['Monthly_Inhand_Salary','Num_of_Loan','Num_Credit_Inquiries','Payment_of_Min_Amount']
+    mode_impute_cat_features = [ 'Occupation' , 'Credit_Mix', 'Payment_Behaviour']
+    
+    # Impute for each group(mean) for the defined numeric features
+    for feature in mean_impute_features:
+        # Fill all the Null values in the group with mean of the corresponding group(s)
+        numeric_features[feature] = numeric_features[feature].fillna(numeric_features.groupby(group)[feature].transform('mean'))
+    
+    # Impute for each group(mode) for the defined numeric features
+    for feature in mode_impute_num_features:
+        # Fill all the Null values in the group with mode of the corresponding group(s)
+        numeric_features[feature] = numeric_features[feature].fillna(numeric_features.groupby(group)[feature].transform(lambda x: x.mode()[0]))
+
+    # Impute for each group(mode) for the defined categorical features
+    for feature in mode_impute_cat_features:
+        # Fill all the Null values in the group with mode of the corresponding group(s)
+        categorical_features[feature] = categorical_features[feature].fillna(categorical_features.groupby(group)[feature].transform(lambda x: x.mode()[0]))
+    
+    return numeric_features,categorical_features
+
+def ImputeByFeature(numeric_features,categorical_features):
+    # Define and init imputation strategies and feature type
+    mean_impute_features =  ['Changed_Credit_Limit', 'Credit_History_Age', 'Amount_invested_monthly', 'Monthly_Balance','Num_of_Delayed_Payment']
+    mode_impute_num_features = ['Monthly_Inhand_Salary','Num_of_Loan','Num_Credit_Inquiries','Payment_of_Min_Amount']
+    mode_impute_cat_features = [ 'Occupation' , 'Credit_Mix', 'Payment_Behaviour']
+    
+    
+    # Imputation for mean numeric features
+    for feature in mean_impute_features:
+        numeric_features[feature].fillna(numeric_features[feature].mean(),inplace=True)
+    
+        # Imputation for mode numeric features
+    for feature in mode_impute_num_features:
+       numeric_features[feature].fillna(numeric_features[feature].mode()[0],inplace=True)
+
+    for feature in mode_impute_cat_features:
+        categorical_features[feature].fillna(categorical_features[feature].mode()[0],inplace=True)
+    
+    return numeric_features,categorical_features
+
+def MissingDataStrategy(solutions,dummy=False):
+    # Dicts init for metric storage
+    accuracies =        {'Impute by Group':[],'Impute by Feature':[]}
+    conf_matricies =    {'Impute by Group':[],'Impute by Feature':[]}
+    runtime =           {'Impute by Group':[],'Impute by Feature':[]}
+    
+    for sol in solutions:
+        start_time = 0
+        end_time = 0
+        if sol == 'Impute by Group':
+            # Get cat and num features with winzorize flag as True(winzorized data)
+            numeric_features,categorical_features,Y,group = LoadData('10kData.csv',True)
+            # Impute by group(12 features)
+            numeric_features,categorical_features = ImputeByGroup(numeric_features,categorical_features,group)
+            # OH-encode categorical feature and concat with num features
+            X = OneHotEncoding(numeric_features,categorical_features)
+            
+            # start train-eval time                   
+            start_time = time.time()
+            # get accuracy and conf matrix for both eval methods
+            accuracy_TTS, conf_matrix_TTS = TrainTestSplit(X,Y,dummy)
+            accuracy_SGK, conf_matrix_SGK = SGKFoldAccuracy(X,Y,group,dummy)
+            # end train-eval time
+            end_time = time.time()
+            #append accuracy and confusion matrix to the respective dicts
+            accuracies['Impute by Group'].append(accuracy_TTS)
+            accuracies['Impute by Group'].append(accuracy_SGK)
+            conf_matricies['Impute by Group'].append(conf_matrix_TTS)
+            conf_matricies['Impute by Group'].append(conf_matrix_SGK)
+            
+            # calculate and append time take
+            time_taken = (end_time-start_time) 
+            runtime['Impute by Group'].append(time_taken)
+            
+            
+        elif sol == 'Impute by Feature':
+            # Get cat and num features with winzorize flag as True(winzorized data)
+            numeric_features,categorical_features,Y,group = LoadData('10kData.csv',True)
+            # Impute by FEATURE
+            numeric_features,categorical_features = ImputeByFeature(numeric_features,categorical_features)
+
+            
+            # OH-encode categorical feature and concat with num features
+            X = OneHotEncoding(numeric_features,categorical_features)
+            
+            # start train-eval time                   
+            start_time = time.time()
+            # get accuracy and conf matrix for both eval methods
+            accuracy_TTS, conf_matrix_TTS = TrainTestSplit(X,Y,dummy)
+            accuracy_SGK, conf_matrix_SGK = SGKFoldAccuracy(X,Y,group,dummy)
+            # end train-eval time
+            end_time = time.time()
+            #append accuracy and confusion matrix to the respective dicts
+            accuracies['Impute by Feature'].append(accuracy_TTS)
+            accuracies['Impute by Feature'].append(accuracy_SGK)
+            conf_matricies['Impute by Feature'].append(conf_matrix_TTS)
+            conf_matricies['Impute by Feature'].append(conf_matrix_SGK)
+            
+            # calculate and append time take
+            time_taken = (end_time-start_time) 
+            runtime['Impute by Feature'].append(time_taken)
+            
+    return accuracies,conf_matricies,runtime
+            
+def C2Results():
+    solutions =  ['Impute by Group','Impute by Feature']
+    accuracies,conf_matricies,runtime = MissingDataStrategy(solutions)
+    print('Run Time:',runtime)
+    print('Accuracy:',accuracies)
+    print(conf_matricies)
+   
     
 if __name__ == "__main__":
     # get C1 results
     #C1Results(dummy=False)
     
-    
+    # get C2 results
+    C2Results()
     
 
-  
-    
+   
 
     
