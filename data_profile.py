@@ -204,6 +204,7 @@ def RemoveUnderscoreMNumOfLoan(value):
     if isinstance(value, int):  # Check if the value is already numeric
         return value
     else:
+        # use regex to convert 
         numeric_part = re.findall(r'\d+\.*\d*', str(value))[0]
     return int(numeric_part)
 
@@ -246,14 +247,7 @@ if __name__ == "__main__":
     # Print types(and counts) of numeric features in the dataset
     PlotForCatData(dataset)
     
-   
-    data_info = dataset[['Num_of_Loan']].describe()
-    
-    
-
-    data_info.to_csv('missed_Profile.csv')
-    
-    # save the claned dataset to csv
+    # save the cleaned dataset to csv
     dataset.to_csv('10kData.csv')
     
     
