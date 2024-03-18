@@ -1,15 +1,16 @@
 '''
 Author: Wadood Alam
-Date: 6th March 2024
+Date: 18th March 2024
 Class: AI 539
 Final Project: Credit Score Evaluation
 '''
+# Importing required libraries
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
 import re,warnings
 
+# Ignore warning in output
 warnings.filterwarnings("ignore")
 
 def GraphMissingValues(data):

@@ -5,6 +5,7 @@ Class: AI 539
 Final Project: Credit Score Evaluation
 '''
 
+# Importing required libraries
 import pandas as pd
 import numpy as np
 from sklearn.metrics import accuracy_score, confusion_matrix
@@ -16,8 +17,12 @@ import time
 import warnings
 from imblearn.under_sampling import RandomUnderSampler
 from sklearn.utils.class_weight import compute_sample_weight
+
+# Ignore warning in output
 warnings.filterwarnings('ignore')
 
+
+# Utility Functions
 def LoadData(path, Winsorize=False):
     # read from csv
     data = pd.read_csv(path)
@@ -142,7 +147,7 @@ def GetClassifier(dummy=False):
     return model
 
 
-
+# Functions for C1
 def IdentifyOutliers():
     data = pd.read_csv('10kData.csv')
     
@@ -334,7 +339,7 @@ def C1Results(dummy):
         print('Confusion Matrices',conf_matricies)
     
     
-
+# Functions for C2
 def ImputeByGroup(numeric_features,categorical_features,group):
     # Define and init imputation strategies and feature type
     mean_impute_features =  ['Changed_Credit_Limit', 'Credit_History_Age', 'Amount_invested_monthly', 'Monthly_Balance','Num_of_Delayed_Payment']
@@ -477,7 +482,7 @@ def C2Results():
     print('Confusion Matrices',conf_matricies)
 
 
-
+# Functions for C3
 def Undersample(X,Y,group):
     # Init random sampler for undersampling
     sampler = RandomUnderSampler(random_state=0)
@@ -612,7 +617,7 @@ if __name__ == "__main__":
     #C2Results()
     
     # get C3 results
-    C2Results()
+    C3Results()
     
 
 

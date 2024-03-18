@@ -1,5 +1,5 @@
-,Credit_Score,Credit_Mix,Type_of_Loan,Payment_Behaviour,Payment_of_Min_Amount
-count,10000,7968,8800,10000,10000
-unique,3,3,812,7,3
-top,Standard,Standard,Home Equity Loan,Low_spent_Small_value_payments,Yes
-freq,5201,3592,144,2485,5258
+,Credit_Mix,Payment_Behaviour,Occupation,Month
+count,7968,9220,9315,10000
+unique,3,6,15,8
+top,Standard,Low_spent_Small_value_payments,Lawyer,January
+freq,3592,2485,728,1250
