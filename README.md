@@ -9,6 +9,10 @@ Wadood Alam
 ## Assignment
 AI 539 Final Project: Credit Score Evaluation
 
+## Dataset Download Link
+https://github.com/wadoodalam/Credit-Score-Prediction/blob/main/10kData.csv 
+
+
 ## Dependencies / Imports Required
 
   - Python 
