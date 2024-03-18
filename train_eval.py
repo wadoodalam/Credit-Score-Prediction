@@ -1,6 +1,6 @@
 '''
 Author: Wadood Alam
-Date: 6th March 2024
+Date: 18th March 2024
 Class: AI 539
 Final Project: Credit Score Evaluation
 '''
@@ -15,6 +15,7 @@ from scipy.stats.mstats import winsorize
 import time
 import warnings
 from imblearn.under_sampling import RandomUnderSampler
+from sklearn.utils.class_weight import compute_sample_weight
 warnings.filterwarnings('ignore')
 
 def LoadData(path, Winsorize=False):
@@ -57,9 +58,14 @@ def OneHotEncoding(num_features,cat_features):
     X = pd.concat([num_features,encoded_features],axis=1)
     return X
 
-def TrainModel(X,Y,classifier):
-    # train the model
-    classifier.fit(X,Y)
+def TrainModel(X,Y,classifier,weights=None):
+    # If training with weights
+    if weights is not None:
+        # train the model with weights
+        classifier.fit(X,Y,sample_weight=weights)
+    else:
+        # train the model
+        classifier.fit(X,Y)
     return classifier
 
 def Predict(X,Y,classifier):
@@ -71,18 +77,26 @@ def Predict(X,Y,classifier):
     conf_matrix = confusion_matrix(Y, Y_predict)
     return accuracy, conf_matrix
 
-def TrainTestSplit(X,Y,dummy=False):
+def TrainTestSplit(X,Y,dummy=False,weights=False):
     # 80% train and 20% test
     X_train,X_test,Y_train,Y_test = train_test_split(X,Y,train_size=0.8,random_state=0)
     # Get the classifier depending on the dummy flag
     model = GetClassifier(dummy)
-    # Train the model using the method
-    classifier = TrainModel(X_train,Y_train,model)
+    
+    
+    if weights:
+        # get weights
+        sample_weights = Weighting(Y_train)
+        # train with weights if defined
+        classifier = TrainModel(X_train,Y_train,model,sample_weights)
+    else:
+        # Train the model without weights
+        classifier = TrainModel(X_train,Y_train,model)
     # Predict to get accuracy and confusion matrix
     accuracy, conf_matrix = Predict(X_test,Y_test, classifier)
     return accuracy,conf_matrix
 
-def SGKFoldAccuracy(X,Y,group,dummy=False):
+def SGKFoldAccuracy(X,Y,group,dummy=False,weights=False):
     # Get classifier based on dummy
     classifier = GetClassifier(dummy)
     # Init Strified-Group-wise CV, scores list and conf matrix list    
@@ -94,8 +108,16 @@ def SGKFoldAccuracy(X,Y,group,dummy=False):
         X_train, X_test = X.iloc[train],X.iloc[test]
         Y_train, Y_test = Y.iloc[train],Y.iloc[test]
         
-        # Train the classifier and predict
-        classifier.fit(X_train,Y_train)
+        if weights:
+            # get weights
+            sample_weights = Weighting(Y_train)
+            # Train the classifier with weights
+            classifier.fit(X_train,Y_train,sample_weight=sample_weights)
+        else:
+            # Train the classifier without weights
+            classifier.fit(X_train,Y_train)
+        
+        # Predict from classifier
         Y_predict = classifier.predict(X_test)
         
         # get accuracy scores as numpy
@@ -118,6 +140,8 @@ def GetClassifier(dummy=False):
         model = HistGradientBoostingClassifier(max_iter=100, random_state=0)
         #print(model.get_params()) # Use this print model parameters
     return model
+
+
 
 def IdentifyOutliers():
     data = pd.read_csv('10kData.csv')
@@ -291,18 +315,23 @@ def OutlierStrategy(solutions,dummy):
     return accuracies,conf_matricies,runtime
         
 def C1Results(dummy):
+    # 3 strategies
     outlier_sol = ['Do Nothing','Winsorize', 'Remove By Threshold']
+    # get results for all 3 strategies with dummy classifier(3 are the same)
     if dummy:
         accuracies,conf_matricies,runtime = OutlierStrategy(outlier_sol,True)
+        print('Dummy Results:')
         print('Run Time:',runtime)
         print('Accuracy:',accuracies)
         
-        
+    # get results for all 3 strategies with proper classifier   
     else:
         accuracies,conf_matricies,runtime = OutlierStrategy(outlier_sol,False)
+        # print results
+        print('C1 Results:')
         print('Run Time:',runtime)
         print('Accuracy:',accuracies)
-        print(conf_matricies)
+        print('Confusion Matrices',conf_matricies)
     
     
 
@@ -437,11 +466,15 @@ def MissingDataStrategy(solutions,dummy=False):
     return accuracies,conf_matricies,runtime
             
 def C2Results():
+    # 3 strategies
     solutions =  ['Do Nothing','Impute by Group','Impute by Feature']
+    # get results for all 3 strategies
     accuracies,conf_matricies,runtime = MissingDataStrategy(solutions)
+    # print results
+    print('C2 Results:')
     print('Run Time:',runtime)
     print('Accuracy:',accuracies)
-    print(conf_matricies)
+    print('Confusion Matrices',conf_matricies)
 
 
 
@@ -460,6 +493,11 @@ def Undersample(X,Y,group):
     
     return X_resampled,Y_resampled,group_undersampled
 
+def Weighting(Y):
+    # Find class weights
+    weights = compute_sample_weight('balanced',y=Y)
+    return weights
+
 def ClassImbalanceStrategy(solutions,dummy=False):
     # Dicts init for metric storage
     accuracies =        {'Do Nothing':[],'Undersampling':[],'Weighting':[]}
@@ -470,7 +508,35 @@ def ClassImbalanceStrategy(solutions,dummy=False):
         start_time = 0
         end_time = 0
         
-        if sol == 'Undersampling':
+        if sol == 'Do Nothing':
+            # Get cat and num features with winzorize flag as True(winzorized data)
+            numeric_features,categorical_features,Y,group = LoadData('10kData.csv',True)
+            # Impute by FEATURE
+            numeric_features,categorical_features = ImputeByFeature(numeric_features,categorical_features)
+
+            
+            # OH-encode categorical feature and concat with num features
+            X = OneHotEncoding(numeric_features,categorical_features)
+            
+            # start train-eval time                   
+            start_time = time.time()
+            # get accuracy and conf matrix for both eval methods
+            accuracy_TTS, conf_matrix_TTS = TrainTestSplit(X,Y,dummy)
+            accuracy_SGK, conf_matrix_SGK = SGKFoldAccuracy(X,Y,group,dummy)
+            # end train-eval time
+            end_time = time.time()
+            #append accuracy and confusion matrix to the respective dicts
+            accuracies['Do Nothing'].append(accuracy_TTS)
+            accuracies['Do Nothing'].append(accuracy_SGK)
+            conf_matricies['Do Nothing'].append(conf_matrix_TTS)
+            conf_matricies['Do Nothing'].append(conf_matrix_SGK)
+            
+            # calculate and append time take
+            time_taken = (end_time-start_time) 
+            runtime['Do Nothing'].append(time_taken)
+            
+        
+        elif sol == 'Undersampling':
             # Get cat and num features with winzorize flag as True(winzorized data)
             numeric_features,categorical_features,Y,group = LoadData('10kData.csv',True)
             # Impute by FEATURE
@@ -498,9 +564,46 @@ def ClassImbalanceStrategy(solutions,dummy=False):
             time_taken = (end_time-start_time) 
             runtime['Undersampling'].append(time_taken)
             
+        elif sol == 'Weighting':
+            # Get cat and num features with winzorize flag as True(winzorized data)
+            numeric_features,categorical_features,Y,group = LoadData('10kData.csv',True)
+            # Impute by FEATURE
+            numeric_features,categorical_features = ImputeByFeature(numeric_features,categorical_features)
+            # OH-encode categorical feature and concat with num features
+            X = OneHotEncoding(numeric_features,categorical_features)
+           
+            # start train-eval time                   
+            start_time = time.time()
+            # get accuracy and conf matrix for both eval methods
+            accuracy_TTS, conf_matrix_TTS = TrainTestSplit(X,Y,dummy,True)
+            accuracy_SGK, conf_matrix_SGK = SGKFoldAccuracy(X,Y,group,dummy,True)
+            # end train-eval time
+            end_time = time.time()
+            #append accuracy and confusion matrix to the respective dicts
+            accuracies['Weighting'].append(accuracy_TTS)
+            accuracies['Weighting'].append(accuracy_SGK)
+            conf_matricies['Weighting'].append(conf_matrix_TTS)
+            conf_matricies['Weighting'].append(conf_matrix_SGK)
+            
+            # calculate and append time take
+            time_taken = (end_time-start_time) 
+            runtime['Weighting'].append(time_taken)
+            
+            
     return accuracies,conf_matricies,runtime
  
-    
+def C3Results():
+    # 3 strategies
+    solutions = ['Do Nothing','Undersampling','Weighting']
+    # get results for all 3 strategies
+    accuracies,conf_matricies,runtime = ClassImbalanceStrategy(solutions)
+    # print results
+    print('C3 Results:')
+    print('Run Time:',runtime)
+    print('Accuracy:',accuracies)
+    print('Confusion Matrices',conf_matricies)
+
+
 if __name__ == "__main__":
     # get C1 results
     #C1Results(dummy=False)
@@ -508,11 +611,10 @@ if __name__ == "__main__":
     # get C2 results
     #C2Results()
     
-    solutions = ['Undersampling']
-    accuracies,conf_matricies,runtime = ClassImbalanceStrategy(solutions)
-    print('Run Time:',runtime)
-    print('Accuracy:',accuracies)
-    print(conf_matricies)
+    # get C3 results
+    C2Results()
+    
+
 
    
 
