@@ -14,6 +14,7 @@ from sklearn.ensemble import HistGradientBoostingClassifier
 from scipy.stats.mstats import winsorize
 import time
 import warnings
+from imblearn.under_sampling import RandomUnderSampler
 warnings.filterwarnings('ignore')
 
 def LoadData(path, Winsorize=False):
@@ -441,15 +442,77 @@ def C2Results():
     print('Run Time:',runtime)
     print('Accuracy:',accuracies)
     print(conf_matricies)
-   
+
+
+
+def Undersample(X,Y,group):
+    # Init random sampler for undersampling
+    sampler = RandomUnderSampler(random_state=0)
+    
+    # Fit and apply the undersampling to your data
+    X_resampled, Y_resampled = sampler.fit_resample(X, Y)
+    
+    # Find indices of undersampled instances in the original data
+    indices_undersampled = sampler.sample_indices_
+    
+    # Extract corresponding group values for the undersampled instances
+    group_undersampled = group.iloc[indices_undersampled]
+    
+    return X_resampled,Y_resampled,group_undersampled
+
+def ClassImbalanceStrategy(solutions,dummy=False):
+    # Dicts init for metric storage
+    accuracies =        {'Do Nothing':[],'Undersampling':[],'Weighting':[]}
+    conf_matricies =    {'Do Nothing':[],'Undersampling':[],'Weighting':[]}
+    runtime =           {'Do Nothing':[],'Undersampling':[],'Weighting':[]}
+    
+    for sol in solutions:
+        start_time = 0
+        end_time = 0
+        
+        if sol == 'Undersampling':
+            # Get cat and num features with winzorize flag as True(winzorized data)
+            numeric_features,categorical_features,Y,group = LoadData('10kData.csv',True)
+            # Impute by FEATURE
+            numeric_features,categorical_features = ImputeByFeature(numeric_features,categorical_features)
+            # OH-encode categorical feature and concat with num features
+            X = OneHotEncoding(numeric_features,categorical_features)
+            
+            # Undersample the dataset using random undersampler
+            X_undersampled,Y_undersampled,group_undersampled = Undersample(X,Y,group)
+            
+            # start train-eval time                   
+            start_time = time.time()
+            # get accuracy and conf matrix for both eval methods
+            accuracy_TTS, conf_matrix_TTS = TrainTestSplit(X_undersampled,Y_undersampled,dummy)
+            accuracy_SGK, conf_matrix_SGK = SGKFoldAccuracy(X_undersampled,Y_undersampled,group_undersampled,dummy)
+            # end train-eval time
+            end_time = time.time()
+            #append accuracy and confusion matrix to the respective dicts
+            accuracies['Undersampling'].append(accuracy_TTS)
+            accuracies['Undersampling'].append(accuracy_SGK)
+            conf_matricies['Undersampling'].append(conf_matrix_TTS)
+            conf_matricies['Undersampling'].append(conf_matrix_SGK)
+            
+            # calculate and append time take
+            time_taken = (end_time-start_time) 
+            runtime['Undersampling'].append(time_taken)
+            
+    return accuracies,conf_matricies,runtime
+ 
     
 if __name__ == "__main__":
     # get C1 results
     #C1Results(dummy=False)
     
     # get C2 results
-    C2Results()
+    #C2Results()
     
+    solutions = ['Undersampling']
+    accuracies,conf_matricies,runtime = ClassImbalanceStrategy(solutions)
+    print('Run Time:',runtime)
+    print('Accuracy:',accuracies)
+    print(conf_matricies)
 
    
 
