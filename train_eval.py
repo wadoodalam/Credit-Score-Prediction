@@ -12,7 +12,6 @@ from sklearn.model_selection import train_test_split,StratifiedGroupKFold
 from sklearn.dummy import DummyClassifier
 from sklearn.ensemble import HistGradientBoostingClassifier
 from scipy.stats.mstats import winsorize
-from sklearn.impute import SimpleImputer
 import time
 import warnings
 warnings.filterwarnings('ignore')
@@ -305,9 +304,6 @@ def C1Results(dummy):
         print(conf_matricies)
     
     
-    
-
-
 
 def ImputeByGroup(numeric_features,categorical_features,group):
     # Define and init imputation strategies and feature type
@@ -354,14 +350,37 @@ def ImputeByFeature(numeric_features,categorical_features):
 
 def MissingDataStrategy(solutions,dummy=False):
     # Dicts init for metric storage
-    accuracies =        {'Impute by Group':[],'Impute by Feature':[]}
-    conf_matricies =    {'Impute by Group':[],'Impute by Feature':[]}
-    runtime =           {'Impute by Group':[],'Impute by Feature':[]}
+    accuracies =        {'Do Nothing':[],'Impute by Group':[],'Impute by Feature':[]}
+    conf_matricies =    {'Do Nothing':[],'Impute by Group':[],'Impute by Feature':[]}
+    runtime =           {'Do Nothing':[],'Impute by Group':[],'Impute by Feature':[]}
     
     for sol in solutions:
         start_time = 0
         end_time = 0
-        if sol == 'Impute by Group':
+        if sol == 'Do Nothing':
+            # Get cat and num features with winzorize flag as True(winzorized data)
+            numeric_features,categorical_features,Y,group = LoadData('10kData.csv',True)
+            # OH-encode categorical feature and concat with num features
+            X = OneHotEncoding(numeric_features,categorical_features)
+            # start train-eval time                   
+            start_time = time.time()
+            # get accuracy and conf matrix for both eval methods
+            accuracy_TTS, conf_matrix_TTS = TrainTestSplit(X,Y,dummy)
+            accuracy_SGK, conf_matrix_SGK = SGKFoldAccuracy(X,Y,group,dummy)
+            # end train-eval time
+            end_time = time.time()
+            #append accuracy and confusion matrix to the respective dicts
+            accuracies['Do Nothing'].append(accuracy_TTS)
+            accuracies['Do Nothing'].append(accuracy_SGK)
+            conf_matricies['Do Nothing'].append(conf_matrix_TTS)
+            conf_matricies['Do Nothing'].append(conf_matrix_SGK)
+            
+            # calculate and append time take
+            time_taken = (end_time-start_time) 
+            runtime['Do Nothing'].append(time_taken)
+            
+        
+        elif sol == 'Impute by Group':
             # Get cat and num features with winzorize flag as True(winzorized data)
             numeric_features,categorical_features,Y,group = LoadData('10kData.csv',True)
             # Impute by group(12 features)
@@ -417,7 +436,7 @@ def MissingDataStrategy(solutions,dummy=False):
     return accuracies,conf_matricies,runtime
             
 def C2Results():
-    solutions =  ['Impute by Group','Impute by Feature']
+    solutions =  ['Do Nothing','Impute by Group','Impute by Feature']
     accuracies,conf_matricies,runtime = MissingDataStrategy(solutions)
     print('Run Time:',runtime)
     print('Accuracy:',accuracies)
