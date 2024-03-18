@@ -8,6 +8,8 @@ Final Project: Credit Score Evaluation
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.decomposition import PCA
 import re,warnings
 
 # Ignore warning in output
@@ -209,6 +211,20 @@ def RemoveUnderscoreMNumOfLoan(value):
         numeric_part = re.findall(r'\d+\.*\d*', str(value))[0]
     return int(numeric_part)
 
+def CorelationMatrix(data):
+    # Take a random subset of 10 rows
+    data = data.sample(n=10, random_state=42)  # Adjust random_state as needed for reproducibility
+    data = data.dropna()
+    # OH encode for corelation matrix
+    data = pd.get_dummies(data)
+    
+    corr_matrix = data.corr()
+    # Apply red color to highlight positive values
+    styled_corr_matrix = corr_matrix.style.applymap(lambda x: 'background-color: red' if x > 0 else '')
+    
+    # Save the matrix as excel for viewing 
+    styled_corr_matrix.to_excel('correlation_matrix.xlsx', engine='openpyxl', index=False)
+    
 
 
 if __name__ == "__main__":
@@ -247,6 +263,9 @@ if __name__ == "__main__":
     PrintNumberOfNumericFeature(dataset)
     # Print types(and counts) of numeric features in the dataset
     PlotForCatData(dataset)
+    
+    # Print Corelation Matrix
+    CorelationMatrix(dataset)
     
     # save the cleaned dataset to csv
     dataset.to_csv('10kData.csv')
